@@ -1,0 +1,31 @@
+# Dockerfile-pyyaml-latest
+FROM python:3.11-slim
+
+# metadata
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+# Instala dependências do SO necessárias (libyaml é opcional, acelera parsing se presente)
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+       build-essential \
+       libyaml-dev \
+       ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Cria um usuário não-root para rodar o container
+RUN useradd --create-home --shell /bin/bash appuser
+USER appuser
+WORKDIR /home/appuser
+
+# Atualiza pip e instala PyYAML (sem pinagem = instala a versão mais recente)
+RUN python -m pip install --upgrade pip setuptools wheel \
+    && pip install PyYAML
+
+# (opcional) Copia scripts de demo se existirem
+COPY app_test_vuln_new.py /home/appuser/app_test_vuln_new.py
+
+# Expondo shell para inspeção; você pode alterar para rodar um script automaticamente
+ENTRYPOINT ["/bin/bash"]
