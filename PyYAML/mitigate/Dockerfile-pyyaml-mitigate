@@ -1,0 +1,13 @@
+FROM python:3.9-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential libyaml-dev && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --upgrade pip setuptools==65.5.0 wheel==0.38.4
+RUN pip install PyYAML==5.3.1
+
+COPY app_pyyaml_vuln_mitigate.py /app/app_pyyaml_vuln_mitigate.py
+COPY yaml_loader.py /app/yaml_loader.py
+
+CMD ["python", "app_pyyaml_vuln_mitigate.py"]
