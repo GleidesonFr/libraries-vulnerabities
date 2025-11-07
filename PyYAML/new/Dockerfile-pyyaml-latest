@@ -28,4 +28,4 @@ RUN python -m pip install --upgrade pip setuptools wheel \
 COPY app_test_vuln_new.py /home/appuser/app_test_vuln_new.py
 
 # Expondo shell para inspeção; você pode alterar para rodar um script automaticamente
-ENTRYPOINT ["/bin/bash"]
+CMD ["python", "app_test_vuln_new.py"]
